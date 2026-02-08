@@ -1,47 +1,25 @@
 import streamlit as st
 import yfinance as yf
-import google.generativeai as genai
+from google import genai
 
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-st.set_page_config(page_title="Yatırım Robotu")
-
-# 🔐 API anahtarını Streamlit secrets'tan al
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
-# Daha stabil model
-model = genai.GenerativeModel("gemini-1.5-flash")
+# API anahtarı
+client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
 
 st.set_page_config(page_title="Yatırım Robotu")
-
 st.title("Yatırım Robotu")
 st.subheader("Borsa İstanbul Veri Analiz Asistanı")
 
-# Kullanıcıdan hisse kodu al
-hisse_kodu = st.text_input(
-    "Analiz edilecek hisse kodu (Örn: ASELS.IS, TUPRS.IS):",
-    "ASELS.IS"
-)
+hisse_kodu = st.text_input("Analiz edilecek hisse kodu (Örn: ASELS.IS, TUPRS.IS):", "ASELS.IS")
 
 if st.button("Verileri Çek ve Analiz Et"):
     try:
-        # 📈 Veri çek
         ticker = yf.Ticker(hisse_kodu)
         info = ticker.info
 
-        fiyat = info.get('currentPrice')
-        fk_orani = info.get('trailingPE')
+        fiyat = info.get('currentPrice', 'N/A')
+        fk_orani = info.get('trailingPE', 'N/A')
+        temettu = info.get('dividendYield', 0) * 100 if info.get('dividendYield') else 0
 
-        temettu_raw = info.get('dividendYield')
-        temettu = (temettu_raw * 100) if temettu_raw else 0
-
-        # Eğer veri hiç gelmezse uyar
-        if fiyat is None:
-            st.error("Fiyat verisi alınamadı. Hisse kodu yanlış olabilir.")
-            st.stop()
-
-        # 🧠 Gemini promptu
         prompt = f"""
         Sen bir finansal analiz uzmanısın. Aşağıdaki verileri analiz et:
 
@@ -51,30 +29,24 @@ if st.button("Verileri Çek ve Analiz Et"):
         Temettü Verimi: %{temettu:.2f}
 
         Lütfen bu verileri yorumla. Hisse ucuz mu pahalı mı?
-        Uzun vadeli biriktirmek mantıklı mı?
-
-        Bir arkeoloji öğrencisinin anlayacağı dilden,
-        kazı, katmanlar, stratigrafi ve antik değer gibi benzetmelerle anlat.
+        Uzun vadeli biriktirmek mantıklı mı? Bir arkeoloji öğrencisinin
+        anlayacağı dilden (kazı, katmanlar, stratigrafi ve antik değer gibi benzetmelerle) anlat.
         """
 
         with st.spinner('Veriler inceleniyor, katmanlar kazılıyor...'):
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
 
-        # 📊 Teknik verileri göster
         st.write("### 📊 Teknik Veriler")
         col1, col2, col3 = st.columns(3)
         col1.metric("Fiyat", f"{fiyat} TL")
-        col2.metric("F/K Oranı", fk_orani if fk_orani else "N/A")
+        col2.metric("F/K Oranı", fk_orani)
         col3.metric("Temettü %", f"{temettu:.2f}")
 
-        # 🧠 Gemini analizini güvenli çek
-        try:
-            analiz_text = response.candidates[0].content.parts[0].text
-        except Exception:
-            analiz_text = "Analiz üretilemedi. Model yanıtı boş döndü."
-
         st.write("### 🧠 Gemini Analizi")
-        st.write(analiz_text)
+        st.write(response.text)
 
     except Exception as e:
         st.error(f"Bir hata oluştu: {e}")
