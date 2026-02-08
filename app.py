@@ -3,7 +3,7 @@ import yfinance as yf
 import google.generativeai as genai
 
 # 🔐 API anahtarını Streamlit secrets'tan al
-genai.configure(api_key=st.secrets["AIzaSyAic3k8dF2tiOC5WdTs_raXvlC7Yc3yEJo"])
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Daha stabil model
 model = genai.GenerativeModel('gemini-1.5-flash')
