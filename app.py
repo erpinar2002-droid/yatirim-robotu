@@ -1,8 +1,11 @@
-streamlit
-yfinance
-google-generativeai>=0.5.0
-pandas
-matplotlib
+import streamlit as st
+import yfinance as yf
+import google.generativeai as genai
+
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+st.set_page_config(page_title="Yatırım Robotu")
 
 # 🔐 API anahtarını Streamlit secrets'tan al
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
