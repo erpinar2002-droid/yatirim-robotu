@@ -6,7 +6,7 @@ import google.generativeai as genai
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Daha stabil model
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel("gemini-1.0-pro")
 
 st.set_page_config(page_title="Yatırım Robotu")
 
